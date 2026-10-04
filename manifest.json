@@ -1,7 +1,7 @@
 {
-  "name": "Ingeniería Mecatrónica UNCUYO",
-  "short_name": "Ing. MCT",
-  "description": "Dashboard académico personal - Ingeniería Mecatrónica UNCUYO",
+  "name": "Ingeniería Mecatrónica UNCUYO (BETA)",
+  "short_name": "Ing. MCT Beta",
+  "description": "Sitio de pruebas - Dashboard académico personal - Ingeniería Mecatrónica UNCUYO",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
