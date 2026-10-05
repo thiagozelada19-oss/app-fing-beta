@@ -937,6 +937,7 @@ body {
 .modal-title span { color:var(--accent); }
 
 .form-group { margin-bottom:14px; }
+.form-input-bloqueado { opacity: 0.6; cursor: not-allowed; }
 .form-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:6px; display:block; letter-spacing:0.5px; }
 .form-input {
   width:100%; background:var(--panel2); border:1px solid var(--border);
@@ -1393,6 +1394,15 @@ body {
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-materia-title">Nueva <span>materia</span></div>
+    <div class="form-group" id="m-plan-wrap">
+      <label class="form-label">MATERIA DEL PLAN DE ESTUDIOS</label>
+      <select class="form-input" id="m-plan-select" onchange="onPlanMateriaSelect()">
+        <option value="">✍️ Otra (no está en el plan)</option>
+      </select>
+      <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px;">
+        Elegí una del plan para completar el nombre y código solos, o "Otra" para cargarla a mano.
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label">NOMBRE</label>
       <input class="form-input" id="m-nombre" placeholder="Ej: Álgebra Lineal">
@@ -1878,6 +1888,11 @@ function importarDatos(input) {
       state = data.state;
       // Migración de seguridad
       state.materias = state.materias.map(m => ({...m, estado: m.estado || 'cursando', minutosEstudio: m.minutosEstudio || 0}));
+      state.materias = state.materias.map(m => {
+        if (m.planId) return m;
+        const match = PLAN_FLAT.find(p => p.nombre === m.nombre);
+        return match ? {...m, planId: match.id} : m;
+      });
       if (!state.examenes) state.examenes = [];
       if (!state.estudioLog) state.estudioLog = {};
       saveState();
@@ -1960,6 +1975,14 @@ async function bootApp() {
 
   // Migrar materias viejas que no tengan estado ni minutos de estudio
   state.materias = state.materias.map(m => ({...m, estado: m.estado || 'cursando', minutosEstudio: m.minutosEstudio || 0}));
+  // Vincular retroactivamente con el plan a materias que coincidan por
+  // nombre exacto y todavía no tengan planId — así no se ofrecen de nuevo
+  // como "nuevas" en el selector de Nueva materia.
+  state.materias = state.materias.map(m => {
+    if (m.planId) return m;
+    const match = PLAN_FLAT.find(p => p.nombre === m.nombre);
+    return match ? {...m, planId: match.id} : m;
+  });
   // Migrar examenes y registro de estudio si no existen
   if (!state.examenes) state.examenes = JSON.parse(JSON.stringify(DEFAULT_STATE.examenes));
   if (!state.estudioLog) state.estudioLog = {};
@@ -4354,8 +4377,16 @@ function openModal(id) {
   if (!(id === 'modal-clase' && editingClaseId)) {
     fillSelects();
   }
-  if(id==='modal-materia' && !editingMateriaId) {
-    document.getElementById('modal-materia-title').innerHTML='Nueva <span>materia</span>';
+  if(id==='modal-materia') {
+    const planWrap = document.getElementById('m-plan-wrap');
+    if (!editingMateriaId) {
+      document.getElementById('modal-materia-title').innerHTML='Nueva <span>materia</span>';
+      if (planWrap) planWrap.style.display = '';
+      rellenarSelectorPlanMaterias();
+      onPlanMateriaSelect(); // arranca con nombre/código editables (selección en blanco)
+    } else if (planWrap) {
+      planWrap.style.display = 'none'; // al editar, no tiene sentido re-elegir del plan
+    }
   }
   if(id==='modal-tarea' && !editingTareaId) {
     document.getElementById('modal-tarea-title').innerHTML='Nueva <span>tarea</span>';
@@ -4417,6 +4448,63 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
     if (o.id === 'modal-tutorial') tutorialFinalizar(); else o.classList.remove('open');
   });
 });
+
+// Arma el selector "Materia del plan de estudios" para Nueva materia, con
+// las materias del plan que el usuario TODAVÍA NO agregó (se excluyen por
+// planId, no por nombre, para no depender de que el texto coincida exacto).
+// Se agrupan por año/semestre para que sea fácil de recorrer.
+function rellenarSelectorPlanMaterias() {
+  const sel = document.getElementById('m-plan-select');
+  if (!sel) return;
+
+  const yaAgregadas = new Set(state.materias.map(m => m.planId).filter(Boolean));
+  const disponibles = PLAN_FLAT.filter(m => !yaAgregadas.has(m.id));
+
+  const porBloque = {};
+  disponibles.forEach(m => {
+    const clave = m.anio + '-' + m.semestre;
+    if (!porBloque[clave]) porBloque[clave] = { anio: m.anio, semestre: m.semestre, materias: [] };
+    porBloque[clave].materias.push(m);
+  });
+  const bloques = Object.values(porBloque).sort((a, b) => (a.anio - b.anio) || (a.semestre - b.semestre));
+
+  let html = '<option value="">✍️ Otra (no está en el plan)</option>';
+  bloques.forEach(b => {
+    html += `<optgroup label="${b.anio}° año · ${b.semestre}° semestre">`;
+    html += b.materias.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+  sel.value = '';
+}
+
+// Al elegir una materia del plan, completa nombre y código solos (y los
+// bloquea, para que no se desincronicen del plan sin querer). Al elegir
+// "Otra", los deja libres para cargar a mano, como era antes.
+function onPlanMateriaSelect() {
+  const sel = document.getElementById('m-plan-select');
+  const nombreInput = document.getElementById('m-nombre');
+  const codigoInput = document.getElementById('m-codigo');
+  if (!sel || !nombreInput || !codigoInput) return;
+
+  const planId = sel.value;
+  if (planId) {
+    const m = getPlanMateria(planId);
+    if (m) {
+      nombreInput.value = m.nombre;
+      codigoInput.value = planId;
+    }
+    nombreInput.readOnly = true;
+    codigoInput.readOnly = true;
+    nombreInput.classList.add('form-input-bloqueado');
+    codigoInput.classList.add('form-input-bloqueado');
+  } else {
+    nombreInput.readOnly = false;
+    codigoInput.readOnly = false;
+    nombreInput.classList.remove('form-input-bloqueado');
+    codigoInput.classList.remove('form-input-bloqueado');
+  }
+}
 
 function fillSelects(){
   // Para Tareas y Exámenes: solo materias que todavía pueden generarlos (no
@@ -4528,6 +4616,18 @@ function guardarMateria(){
   const metaMinutos = metaHorasVal !== '' && !isNaN(metaHorasVal) && +metaHorasVal > 0
     ? Math.round(+metaHorasVal * 60) : null;
 
+  // planId vincula esta materia con una del plan de estudios (para no
+  // ofrecerla de nuevo en el selector). Al editar, se conserva la que ya
+  // tenía (el selector de plan está oculto en modo edición).
+  let planId = null;
+  if (editingMateriaId) {
+    const prev = getM(editingMateriaId);
+    planId = prev ? (prev.planId || null) : null;
+  } else {
+    const selPlan = document.getElementById('m-plan-select');
+    planId = (selPlan && selPlan.value) ? selPlan.value : null;
+  }
+
   const obj = {
     id:     editingMateriaId || Date.now(),
     nombre,
@@ -4536,6 +4636,7 @@ function guardarMateria(){
     n1, n2, nf, estado,
     minutosEstudio: minutosPrevios,
     metaMinutos,
+    planId,
   };
 
   if(editingMateriaId){
@@ -4546,6 +4647,9 @@ function guardarMateria(){
     showToast('✅ Materia agregada');
   }
   ['m-nombre','m-codigo','m-n1','m-n2','m-nf','m-meta-horas'].forEach(id => document.getElementById(id).value = '');
+  const selPlanReset = document.getElementById('m-plan-select');
+  if (selPlanReset) selPlanReset.value = '';
+  onPlanMateriaSelect(); // vuelve a dejar nombre/código editables para la próxima vez
   closeModal('modal-materia');
   saveState();
   render();
@@ -4559,6 +4663,12 @@ window.editarMateria=function(id){
   document.getElementById('modal-materia-title').innerHTML='Editar <span>materia</span>';
   document.getElementById('m-nombre').value=m.nombre;
   document.getElementById('m-codigo').value=m.codigo;
+  // Al editar, nombre/código siempre quedan libres (por si quedaron
+  // bloqueados de una sesión anterior de "Nueva materia" sin guardar).
+  document.getElementById('m-nombre').readOnly = false;
+  document.getElementById('m-codigo').readOnly = false;
+  document.getElementById('m-nombre').classList.remove('form-input-bloqueado');
+  document.getElementById('m-codigo').classList.remove('form-input-bloqueado');
   document.getElementById('m-color').value=m.color;
   document.getElementById('m-n1').value=m.n1??'';
   document.getElementById('m-n2').value=m.n2??'';

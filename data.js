@@ -196,11 +196,20 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 17)
+//   id      → número entero único y creciente (el siguiente es 18)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 17,
+    fecha: '2026-10-04',
+    titulo: 'Nueva materia: elegila directo del plan de estudios',
+    cambios: [
+      'Al crear una materia, ahora podés elegirla directo del plan de estudios y se completan el nombre y código solos — el resto (color, notas, estado) lo seguís cargando como siempre.',
+      'Una vez que agregás una materia del plan, ya no vuelve a aparecer en esa lista.',
+    ],
+  },
   {
     id: 16,
     fecha: '2026-10-04',
