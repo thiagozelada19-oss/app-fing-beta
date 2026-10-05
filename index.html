@@ -3537,6 +3537,7 @@ async function restaurarPomodoroAlArrancar() {
     }
     if (pomodoroEstado) arrancarIntervaloPomodoro();
     guardarPomodoroActivo();
+    actualizarNotificacionPomodoro();
   }
 }
 
@@ -3562,6 +3563,7 @@ function iniciarPomodoro() {
   guardarPomodoroActivo();
   arrancarIntervaloPomodoro();
   rPomodoro();
+  actualizarNotificacionPomodoro();
 }
 
 function arrancarIntervaloPomodoro() {
@@ -3569,10 +3571,18 @@ function arrancarIntervaloPomodoro() {
   pomodoroIntervalo = setInterval(tickPomodoro, 1000);
 }
 
+let _pomodoroNotifContador = 0;
 function tickPomodoro() {
   if (!pomodoroEstado || pomodoroEstado.pausado) return;
-  if (segundosRestantesPomodoro() <= 0) finalizarFasePomodoro(false);
-  else { rPomodoro(); }
+  if (segundosRestantesPomodoro() <= 0) { finalizarFasePomodoro(false); return; }
+  rPomodoro();
+  // La notificación fija se refresca cada 30s (no cada segundo, para no
+  // saturar al navegador de actualizaciones ni generar parpadeo molesto).
+  _pomodoroNotifContador++;
+  if (_pomodoroNotifContador >= 30) {
+    _pomodoroNotifContador = 0;
+    actualizarNotificacionPomodoro();
+  }
 }
 
 // silencioso=true → no suena ni muestra cartel (se usa al "ponerse al día"
@@ -3642,6 +3652,7 @@ function finalizarFasePomodoro(silencioso) {
   pomodoroEstado.pausado = false;
   guardarPomodoroActivo();
   rPomodoro();
+  actualizarNotificacionPomodoro();
 }
 
 function notificarPomodoro(msg) {
@@ -3654,11 +3665,7 @@ function notificarPomodoro(msg) {
 // horario y amigos.
 function dispararNotificacion(titulo, cuerpo) {
   showToast(cuerpo, 4500);
-  try {
-    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-      new Notification(titulo, { body: cuerpo, icon: './icon-192.png' });
-    }
-  } catch(e) {}
+  mostrarNotificacionOS(titulo, { body: cuerpo, icon: './icon-192.png' });
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator(); const gain = ctx.createGain();
@@ -3668,6 +3675,24 @@ function dispararNotificacion(titulo, cuerpo) {
     osc.start(); osc.stop(ctx.currentTime + 0.35);
   } catch(e) {}
   if (navigator.vibrate) { try { navigator.vibrate([200,100,200]); } catch(e) {} }
+}
+
+// Muestra una notificación REAL del sistema (aparece en la bandeja de
+// notificaciones del celular/compu, fuera de la app). Se hace a través del
+// Service Worker en vez de "new Notification(...)" directo, porque en
+// muchos navegadores (sobre todo Android) esa forma directa no siempre
+// llega a mostrarse correctamente fuera de la app. Si por algún motivo el
+// Service Worker no está disponible, cae de vuelta al método directo.
+async function mostrarNotificacionOS(titulo, opciones) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(titulo, opciones);
+      return;
+    }
+  } catch(e) { console.warn('[notif] showNotification falló, uso método directo:', e); }
+  try { new Notification(titulo, opciones); } catch(e) {}
 }
 
 // ── RECORDATORIOS (mientras la app esté abierta) ──
@@ -3833,6 +3858,7 @@ function pomodoroPausarReanudar() {
   }
   guardarPomodoroActivo();
   rPomodoro();
+  actualizarNotificacionPomodoro();
 }
 
 function pomodoroDetener() {
@@ -3854,6 +3880,38 @@ function pomodoroDetener() {
   pomodoroEstado = null;
   guardarPomodoroActivo();
   rPomodoro();
+  actualizarNotificacionPomodoro(); // sin sesión activa → cierra la notificación fija
+}
+
+// Notificación "fija" del Pomodoro: se actualiza en vez de apilarse (gracias
+// a "tag"), muestra la materia y el tiempo restante, y tiene botones para
+// pausar/detener sin volver a la app. Si no hay sesión activa, la cierra.
+// Nota: los botones de acción no funcionan en todos los navegadores (por
+// ejemplo, no en iPhone) — en esos casos la notificación se ve igual, solo
+// que sin los botones.
+function actualizarNotificacionPomodoro() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg => {
+    if (!pomodoroEstado) {
+      reg.getNotifications({ tag: 'pomodoro-activo' }).then(notifs => notifs.forEach(n => n.close()));
+      return;
+    }
+    const mat = getM(pomodoroEstado.materiaId);
+    const restantes = segundosRestantesPomodoro();
+    const esTrabajo = pomodoroEstado.fase === 'trabajo';
+    const cuerpo = `${esTrabajo ? '📖' : '☕'} ${mat ? mat.nombre : 'Pomodoro'} · ${fmtMMSS(restantes)}${pomodoroEstado.pausado ? ' · en pausa' : ''}`;
+    reg.showNotification('🍅 Pomodoro activo', {
+      body: cuerpo,
+      tag: 'pomodoro-activo',
+      icon: './icon-192.png',
+      silent: true, // no suena cada vez que se actualiza el contador
+      actions: [
+        { action: 'pomodoro-pausar', title: pomodoroEstado.pausado ? '▶️ Reanudar' : '⏸️ Pausar' },
+        { action: 'pomodoro-detener', title: '⏹️ Detener' },
+      ],
+    }).catch(e => console.warn('[notif] pomodoro persistente:', e));
+  });
 }
 
 function fmtMMSS(seg) {
@@ -5028,6 +5086,15 @@ if ('serviceWorker' in navigator) {
     if (_recargando) return;
     _recargando = true;
     window.location.reload();
+  });
+
+  // Mensajes del Service Worker: botones tocados en una notificación
+  // (Pausar/Detener del Pomodoro, etc. — ver notificationclick en sw.js).
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || data.tipo !== 'notif-accion') return;
+    if (data.accion === 'pomodoro-pausar') pomodoroPausarReanudar();
+    else if (data.accion === 'pomodoro-detener') pomodoroDetener();
   });
 }
 

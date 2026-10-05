@@ -196,11 +196,20 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 18)
+//   id      → número entero único y creciente (el siguiente es 19)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 18,
+    fecha: '2026-10-05',
+    titulo: 'Notificaciones reales + Pomodoro con aviso fijo',
+    cambios: [
+      'Las notificaciones ahora llegan de verdad a la bandeja del sistema (antes, en algunos celulares, no siempre se veían afuera de la app).',
+      'Mientras corre un Pomodoro, queda un aviso fijo arriba con el tiempo restante y botones para pausar o detener sin volver a la app.',
+    ],
+  },
   {
     id: 17,
     fecha: '2026-10-04',
