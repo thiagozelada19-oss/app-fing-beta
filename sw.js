@@ -1,7 +1,7 @@
 // Service Worker - Dashboard Ing. Mecatrónica UNCUYO
 // Subí este número cada vez que quieras forzar que los usuarios reciban
 // la versión nueva del sitio (invalida la caché vieja automáticamente).
-const CACHE_VERSION = 'v22';
+const CACHE_VERSION = 'v23';
 const CACHE = 'ing-mct-' + CACHE_VERSION;
 
 const PRECACHE_ASSETS = [
@@ -9,6 +9,7 @@ const PRECACHE_ASSETS = [
   './index.html',
   './data.js',
   './firebase-config.js',
+  './storage-config.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

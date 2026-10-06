@@ -1789,14 +1789,18 @@ body {
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <!-- Tus credenciales de Firebase van en firebase-config.js (no son secretas: ver ese archivo) -->
 <script src="./firebase-config.js"></script>
+<!-- Nombre de la base de datos local: DISTINTO en cada sitio (ver ese archivo) -->
+<script src="./storage-config.js"></script>
 
 <script>
 // ── ALMACENAMIENTO (IndexedDB vía localForage) ──
 // Reemplaza el uso directo de localStorage por una base de datos IndexedDB local,
 // más robusta, con mayor capacidad y mejor persistencia que localStorage.
+// El nombre viene de storage-config.js — distinto en cada sitio, para que la
+// app real y la de pruebas no compartan datos locales (ver ese archivo).
 localforage.config({
-  name: 'IngMCT',
-  storeName: 'ing1_datos',
+  name: LOCALFORAGE_DB_NAME,
+  storeName: LOCALFORAGE_STORE_NAME,
   description: 'Datos académicos de la app Ing. Mecatrónica'
 });
 

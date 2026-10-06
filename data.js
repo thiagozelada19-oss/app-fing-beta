@@ -196,11 +196,19 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 19)
+//   id      → número entero único y creciente (el siguiente es 20)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 19,
+    fecha: '2026-10-05',
+    titulo: 'Arreglo: datos guardados en el dispositivo',
+    cambios: [
+      'Corregimos un problema técnico interno de almacenamiento. No deberías notar ningún cambio en tus datos.',
+    ],
+  },
   {
     id: 18,
     fecha: '2026-10-05',
