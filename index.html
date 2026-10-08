@@ -1757,6 +1757,10 @@ body {
           <span>🏆 Cuando un amigo te supere estudiando</span>
           <label class="toggle-switch"><input type="checkbox" id="notif-amigos" onchange="guardarConfigNotificaciones()"><span class="toggle-slider"></span></label>
         </div>
+        <div class="notif-opcion-row">
+          <span>🔊 Sonido en las notificaciones</span>
+          <label class="toggle-switch"><input type="checkbox" id="notif-sonido" onchange="guardarConfigNotificaciones()"><span class="toggle-slider"></span></label>
+        </div>
       </div>
     </div>
 
@@ -3670,14 +3674,6 @@ function notificarPomodoro(msg) {
 function dispararNotificacion(titulo, cuerpo) {
   showToast(cuerpo, 4500);
   mostrarNotificacionOS(titulo, { body: cuerpo, icon: './icon-192.png' });
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    osc.start(); osc.stop(ctx.currentTime + 0.35);
-  } catch(e) {}
   if (navigator.vibrate) { try { navigator.vibrate([200,100,200]); } catch(e) {} }
 }
 
@@ -3687,16 +3683,24 @@ function dispararNotificacion(titulo, cuerpo) {
 // muchos navegadores (sobre todo Android) esa forma directa no siempre
 // llega a mostrarse correctamente fuera de la app. Si por algún motivo el
 // Service Worker no está disponible, cae de vuelta al método directo.
+//
+// El sonido lo da la notificación del sistema, no un beep armado a mano —
+// eso evita el doble sonido (y los problemas de reproducir audio sin que
+// el usuario haya tocado algo justo antes, que en el celular suele fallar).
+// "silent" se arma acá según la preferencia guardada (🔊 Sonido en
+// Notificaciones), salvo que el que llama ya lo haya decidido (como la
+// notificación del Pomodoro, que siempre es silenciosa al actualizarse).
 async function mostrarNotificacionOS(titulo, opciones) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const opts = { silent: !_notifConfig.sonido, ...opciones };
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(titulo, opciones);
+      await reg.showNotification(titulo, opts);
       return;
     }
   } catch(e) { console.warn('[notif] showNotification falló, uso método directo:', e); }
-  try { new Notification(titulo, opciones); } catch(e) {}
+  try { new Notification(titulo, opts); } catch(e) {}
 }
 
 // ── RECORDATORIOS (mientras la app esté abierta) ──
@@ -3705,7 +3709,7 @@ async function mostrarNotificacionOS(titulo, opciones) {
 // clase por empezar, o un amigo que te superó estudiando esta semana. No
 // funciona con la app totalmente cerrada — para eso haría falta un servidor
 // propio (ver explicación dada al usuario).
-let _notifConfig = { tareas: true, horario: true, amigos: true };
+let _notifConfig = { tareas: true, horario: true, amigos: true, sonido: true };
 let _notifIntervalo = null;
 let _notifYaAvisadas = { tareasExamenes: {}, horario: {}, amigos: new Set(), amigosSemana: null };
 
@@ -3726,8 +3730,9 @@ function guardarConfigNotificaciones() {
   const t = document.getElementById('notif-tareas');
   const h = document.getElementById('notif-horario');
   const a = document.getElementById('notif-amigos');
-  if (!t || !h || !a) return;
-  _notifConfig = { tareas: t.checked, horario: h.checked, amigos: a.checked };
+  const s = document.getElementById('notif-sonido');
+  if (!t || !h || !a || !s) return;
+  _notifConfig = { tareas: t.checked, horario: h.checked, amigos: a.checked, sonido: s.checked };
   localforage.setItem('ing1-notif-config', JSON.stringify(_notifConfig)).catch(()=>{});
 }
 
@@ -3744,6 +3749,7 @@ function actualizarUiNotificaciones() {
     document.getElementById('notif-tareas').checked = !!_notifConfig.tareas;
     document.getElementById('notif-horario').checked = !!_notifConfig.horario;
     document.getElementById('notif-amigos').checked = !!_notifConfig.amigos;
+    document.getElementById('notif-sonido').checked = _notifConfig.sonido !== false;
   } else if (permiso === 'denied') {
     denegado.classList.remove('hidden');
   } else {

@@ -196,11 +196,19 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 20)
+//   id      → número entero único y creciente (el siguiente es 21)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 20,
+    fecha: '2026-10-06',
+    titulo: 'Notificaciones: interruptor de sonido',
+    cambios: [
+      'En Backup (💾) → Notificaciones, ahora hay un interruptor 🔊 para elegir si las notificaciones suenan o llegan en silencio.',
+    ],
+  },
   {
     id: 19,
     fecha: '2026-10-05',
