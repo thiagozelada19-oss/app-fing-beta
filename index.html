@@ -256,6 +256,7 @@ body {
 .pomo-resumen-barra.cumplida { background: var(--success); }
 .pomo-resumen-tiempo { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
 .pomo-stat-num { font-size: 16px !important; }
+.pomo-total-box { flex-direction: row; align-items: center; gap: 14px; margin-bottom: 12px; }
 
 /* Píldora flotante: visible en cualquier sección mientras corre una sesión */
 .pomo-mini {
@@ -3616,6 +3617,10 @@ function minutosEstudioEnFecha(key) {
   if (!dia) return 0;
   return Object.values(dia).reduce((a,b) => a + b, 0);
 }
+// Total histórico: todos los minutos estudiados desde el principio, en todas las materias.
+function minutosEstudioTotal() {
+  return state.materias.reduce((a, m) => a + (m.minutosEstudio || 0), 0);
+}
 function minutosEstudioHoy() {
   const d = new Date();
   return minutosEstudioEnFecha(calKey(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -3996,6 +4001,13 @@ function rPomodoro() {
       <div class="stat-num pomo-stat-num">${fmtHorasMin(minutosEstudioEstaSemana())}</div>
       <div class="stat-lbl">Esta semana</div>
     </div>
+  </div>
+  <div class="stat-box pomo-total-box">
+    <div class="stat-icon">⏱️</div>
+    <div>
+      <div class="stat-num pomo-stat-num">${fmtHorasMin(minutosEstudioTotal())}</div>
+      <div class="stat-lbl">Total desde que empezaste</div>
+    </div>
   </div>`;
 
   const conTiempo = state.materias.filter(m => (m.minutosEstudio || 0) > 0).sort((a,b) => (b.minutosEstudio||0) - (a.minutosEstudio||0));
@@ -4070,7 +4082,7 @@ async function sincronizarPerfilPublico() {
     const materiasResumen = state.materias
       .filter(m => (m.minutosEstudio || 0) > 0)
       .map(m => ({ nombre: m.nombre, minutosEstudio: m.minutosEstudio || 0 }));
-    const totalMinutos = state.materias.reduce((a, m) => a + (m.minutosEstudio || 0), 0);
+    const totalMinutos = minutosEstudioTotal();
     const user = firebase.auth().currentUser;
     await db.collection('perfiles').doc(_uid).set({
       nombre: (user && user.displayName) || 'Sin nombre',
@@ -4297,7 +4309,7 @@ function rAmigos() {
   const misAprobadas = PLAN_FLAT.filter(m => ps[m.id] === 'aprobada').length;
   const misStats = {
     uid: _uid, soyYo: true, nombre: 'Vos',
-    totalMinutos: state.materias.reduce((a,m) => a + (m.minutosEstudio||0), 0),
+    totalMinutos: minutosEstudioTotal(),
     semanaMinutos: minutosEstudioEstaSemana(),
     avanceAprobadas: misAprobadas,
     materias: state.materias.filter(m => (m.minutosEstudio||0) > 0).map(m => ({nombre:m.nombre, minutosEstudio:m.minutosEstudio})),

@@ -196,11 +196,19 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 21)
+//   id      → número entero único y creciente (el siguiente es 22)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 21,
+    fecha: '2026-10-08',
+    titulo: 'Pomodoro: horas totales de estudio',
+    cambios: [
+      'En la sección Pomodoro ahora ves el total de horas que llevás estudiando desde que empezaste, además de hoy, ayer y esta semana.',
+    ],
+  },
   {
     id: 20,
     fecha: '2026-10-06',
