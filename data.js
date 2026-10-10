@@ -196,11 +196,21 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 23)
+//   id      → número entero único y creciente (el siguiente es 24)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 23,
+    fecha: '2026-10-08',
+    titulo: 'Menú de Configuración (⚙️)',
+    cambios: [
+      'Arriba a la derecha, los botones de la nube (☁️) y de Backup (💾) se juntaron en un solo engranaje (⚙️).',
+      'Al tocarlo se abre un menú con: Cuenta y sincronización, Backup de datos, Notificaciones, Tutorial e Historial de actualizaciones.',
+      'Las notificaciones ahora tienen su propia pantalla, en vez de estar dentro de Backup.',
+    ],
+  },
   {
     id: 22,
     fecha: '2026-10-08',
@@ -470,15 +480,15 @@ const TUTORIAL = [
     seccion: 'amigos',
   },
   {
-    emoji: '☁️',
-    titulo: 'Cuenta y sincronización',
-    texto: 'Si querés, iniciá sesión con Google acá para tener tus datos sincronizados entre el celular y la computadora. Es opcional: sin iniciar sesión, la app funciona igual.',
+    emoji: '⚙️',
+    titulo: 'Configuración',
+    texto: 'Desde el engranaje tenés todo lo demás: iniciar sesión con Google para sincronizar entre el celular y la computadora (es opcional), el backup de tus datos, las notificaciones y las novedades.',
     seccion: 'cuenta',
   },
   {
     emoji: '🎉',
     titulo: '¡Listo para arrancar!',
-    texto: 'Eso es todo. Podés volver a ver este tutorial cuando quieras desde el botón de Backup (💾).',
+    texto: 'Eso es todo. Podés volver a ver este tutorial cuando quieras desde el engranaje (⚙️).',
   },
 ];
 
