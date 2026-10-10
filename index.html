@@ -656,21 +656,6 @@ body {
 .stat-num { font-family:'Space Mono',monospace; font-size:28px; font-weight:700; line-height:1; }
 .stat-lbl { font-size:11px; color:var(--muted); font-weight:500; }
 
-.donut-card {
-  background:var(--panel); border:1px solid var(--border);
-  border-radius:20px; padding:20px;
-  display:flex; align-items:center; gap:20px; margin-bottom:12px;
-}
-.donut-wrap { position:relative; width:100px; height:100px; flex-shrink:0; }
-.donut-wrap svg { transform:rotate(-90deg); }
-.donut-center {
-  position:absolute; inset:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  font-family:'Space Mono',monospace;
-}
-.donut-pct { font-size:20px; font-weight:700; color:var(--accent); }
-.donut-sub { font-size:8px; color:var(--muted); }
-
 .barra-row { margin-bottom:12px; }
 .barra-info { display:flex; justify-content:space-between; margin-bottom:6px; }
 .barra-name { font-size:13px; font-weight:600; }
@@ -1215,20 +1200,6 @@ body {
   <!-- AVANCE -->
   <section id="sec-avance" class="section">
     <div class="stat-row" id="stat-row"></div>
-    <div class="donut-card">
-      <div class="donut-wrap">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="12"/>
-          <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
-            stroke-dasharray="251" id="donut-circ" stroke-dashoffset="251" stroke-linecap="round"/>
-        </svg>
-        <div class="donut-center">
-          <div class="donut-pct" id="donut-pct">0%</div>
-          <div class="donut-sub">aprobadas</div>
-        </div>
-      </div>
-      <div id="donut-legend" style="flex:1;"></div>
-    </div>
     <div class="card" id="barras-card">
       <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Promedio por materia</div>
       <div id="barras"></div>
@@ -2821,10 +2792,8 @@ function guardarClase(){
 function rAvance(){
   const sr=document.getElementById('stat-row');
   const bs=document.getElementById('barras');
-  const dl=document.getElementById('donut-legend');
   if(!sr) return;
   const total=state.materias.length;
-  const aprobadas=state.materias.filter(m=>{const p=prom(m);return p&&parseFloat(p)>=60;}).length;
   const ps=state.materias.map(m=>parseFloat(prom(m)||0)).filter(p=>p>0);
   const pg=ps.length?(ps.reduce((a,b)=>a+b,0)/ps.length).toFixed(1):'—';
   // Promedio solo de notas finales (escala 0-10), independiente del promedio general de arriba
@@ -2844,23 +2813,6 @@ function rAvance(){
     <div class="stat-num" style="color:${s.col};">${s.num}</div>
     <div class="stat-lbl">${s.lbl}</div>
   </div>`).join('');
-
-  const pct=total?Math.round((aprobadas/total)*100):0;
-  const circ=251;
-  const d=document.getElementById('donut-circ');
-  const dp=document.getElementById('donut-pct');
-  if(d) d.style.strokeDashoffset=circ-(pct/100)*circ;
-  if(dp) dp.textContent=pct+'%';
-
-  if(dl) dl.innerHTML=state.materias.map(m=>{
-    const p=prom(m);
-    const ap=p&&parseFloat(p)>=60;
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <span>${!p?'⏳':ap?'✅':'❌'}</span>
-      <span style="font-size:13px;font-weight:500;">${m.nombre}</span>
-      ${p?`<span style="margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);">${p}</span>`:''}
-    </div>`;
-  }).join('');
 
   if(bs) bs.innerHTML=state.materias.map(m=>{
     const p=parseFloat(prom(m)||0);
