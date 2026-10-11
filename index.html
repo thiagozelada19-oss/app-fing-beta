@@ -3871,7 +3871,7 @@ function chequearNotifAmigos() {
     const susMinutos = d.semanaMinutos || 0;
     if (susMinutos > misMinutos && !avisados.has(uid)) {
       avisados.add(uid);
-      dispararNotificacion('🏆 ¡Te superaron!', `${d.nombre || 'Un amigo'} ya estudió más que vos esta semana (${fmtHorasMin(susMinutos)} vs ${fmtHorasMin(misMinutos)})`);
+      dispararNotificacion('🏆 ¡Te superaron!', `${nombrePerfil(d)} ya estudió más que vos esta semana (${fmtHorasMin(susMinutos)} vs ${fmtHorasMin(misMinutos)})`);
     }
     // Si volviste a tomar la delantera, lo sacamos de la lista de "ya avisados"
     // para que pueda volver a avisarte si te vuelve a superar más adelante.
@@ -4103,6 +4103,7 @@ async function sincronizarPerfilPublico() {
     const user = firebase.auth().currentUser;
     await db.collection('perfiles').doc(_uid).set({
       nombre: (user && user.displayName) || 'Sin nombre',
+      alias: state.alias || '',
       foto: (user && user.photoURL) || '',
       actualizado: firebase.firestore.FieldValue.serverTimestamp(),
       totalMinutos,
@@ -4224,12 +4225,36 @@ async function eliminarAmistad(otroUid) {
   } catch(e) { showToast('❌ No se pudo eliminar'); }
 }
 
+// El apodo y el nombre lo escribe cada usuario y lo ven los demás en la
+// pantalla: se escapa antes de ponerlo en el HTML.
+function escapeHtml(t) {
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+// Lo que ven los amigos: el apodo si tiene, y si no el nombre de la cuenta de Google.
+function nombrePerfil(d) {
+  return (d && (((d.alias || '').trim()) || d.nombre)) || 'Usuario';
+}
+function normalizarAlias(v) {
+  return String(v == null ? '' : v).replace(/[\u0000-\u001F]/g, '').trim().slice(0, 20);
+}
+function guardarAlias() {
+  const input = document.getElementById('alias-input');
+  if (!input) return;
+  const alias = normalizarAlias(input.value);
+  state.alias = alias;
+  input.value = alias;
+  saveState(); // se sincroniza solo, y de ahí sube al perfil que ven tus amigos
+  showToast(alias ? '✅ Apodo guardado' : 'Apodo borrado: tus amigos ven tu nombre de Google');
+}
+
 // Nombre de un usuario por uid, con caché simple + re-render cuando llega.
 function nombreDeUid(uid) {
   if (_nombresCache[uid]) return _nombresCache[uid];
   _nombresCache[uid] = 'Cargando...';
   db.collection('perfiles').doc(uid).get().then(snap => {
-    _nombresCache[uid] = snap.exists ? (snap.data().nombre || 'Usuario') : 'Usuario';
+    _nombresCache[uid] = snap.exists ? nombrePerfil(snap.data()) : 'Usuario';
     rAmigos();
   }).catch(() => { _nombresCache[uid] = 'Usuario'; });
   return _nombresCache[uid];
@@ -4291,7 +4316,23 @@ function rAmigos() {
     return;
   }
 
+  // Si llega un dato nuevo mientras escribís, no se pierde lo tipeado.
+  const _prevInputs = {};
+  ['alias-input','agregar-amigo-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) _prevInputs[id] = { v: el.value, foco: document.activeElement === el };
+  });
+
   let html = `<div class="card">
+    <div class="form-label" style="margin-bottom:6px;">TU APODO</div>
+    <div class="amigo-codigo-row">
+      <input class="form-input" id="alias-input" maxlength="20" placeholder="Ej: Juanma" value="${escapeHtml(state.alias || '')}">
+      <button class="mbtn mbtn-ok" onclick="guardarAlias()">Guardar</button>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin:8px 0 0;">Es el nombre que ven tus amigos. Si lo dejás vacío, ven el nombre de tu cuenta de Google.</div>
+  </div>
+
+  <div class="card">
     <div class="form-label" style="margin-bottom:6px;">TU CÓDIGO DE AMIGO</div>
     <div class="amigo-codigo-row">
       <input class="form-input" id="mi-codigo-amigo" readonly value="${_uid}">
@@ -4310,7 +4351,7 @@ function rAmigos() {
       <div class="pomo-resumen-titulo">📨 Solicitudes recibidas</div>
       ${_solicitudesRecibidas.map(uid => `
         <div class="amigo-solicitud-row">
-          <div class="amigo-solicitud-nombre">${nombreDeUid(uid)}</div>
+          <div class="amigo-solicitud-nombre">${escapeHtml(nombreDeUid(uid))}</div>
           <button class="mbtn mbtn-ok" style="padding:8px 14px;" onclick="aceptarSolicitud('${uid}')">Aceptar</button>
         </div>`).join('')}
     </div>`;
@@ -4318,7 +4359,7 @@ function rAmigos() {
   if (_solicitudesEnviadas.length) {
     html += `<div class="card">
       <div class="pomo-resumen-titulo">⏳ Esperando que te acepten</div>
-      ${_solicitudesEnviadas.map(uid => `<div class="amigo-solicitud-row"><div class="amigo-solicitud-nombre">${nombreDeUid(uid)}</div></div>`).join('')}
+      ${_solicitudesEnviadas.map(uid => `<div class="amigo-solicitud-row"><div class="amigo-solicitud-nombre">${escapeHtml(nombreDeUid(uid))}</div></div>`).join('')}
     </div>`;
   }
 
@@ -4334,7 +4375,7 @@ function rAmigos() {
   const amigosStats = _amigosAceptadosUids.map(uid => {
     const d = _perfilesAmigosData[uid];
     if (!d) return null;
-    return { uid, soyYo:false, nombre: d.nombre || 'Usuario', foto: d.foto,
+    return { uid, soyYo:false, nombre: nombrePerfil(d), foto: d.foto,
              totalMinutos: d.totalMinutos||0, semanaMinutos: d.semanaMinutos||0,
              avanceAprobadas: d.avanceAprobadas||0, materias: d.materias||[] };
   }).filter(Boolean);
@@ -4346,7 +4387,7 @@ function rAmigos() {
     ${ranking.map((p,i) => `
       <div class="amigo-ranking-row${p.soyYo ? ' soy-yo' : ''}">
         <div class="amigo-ranking-pos">${medallas[i] || (i+1) + '°'}</div>
-        <div class="amigo-ranking-nombre">${p.nombre}${p.soyYo ? ' (vos)' : ''}</div>
+        <div class="amigo-ranking-nombre">${escapeHtml(p.nombre)}${p.soyYo ? ' (vos)' : ''}</div>
         <div class="amigo-ranking-tiempo">${fmtHorasMin(p.semanaMinutos)}</div>
       </div>`).join('')}
   </div>`;
@@ -4358,8 +4399,8 @@ function rAmigos() {
       const detalleMaterias = [...a.materias].sort((x,y) => y.minutosEstudio - x.minutosEstudio).slice(0, 6);
       return `<div class="card">
         <div class="amigo-card-header">
-          ${a.foto ? `<img src="${a.foto}" class="amigo-foto" onerror="this.style.display='none'">` : `<div class="amigo-foto-placeholder">👤</div>`}
-          <div class="amigo-card-nombre">${a.nombre}</div>
+          ${a.foto ? `<img src="${escapeHtml(a.foto)}" class="amigo-foto" onerror="this.style.display='none'">` : `<div class="amigo-foto-placeholder">👤</div>`}
+          <div class="amigo-card-nombre">${escapeHtml(a.nombre)}</div>
           <button class="amigo-quitar" onclick="eliminarAmistad('${a.uid}')" title="Eliminar amistad">✕</button>
         </div>
         <div class="stat-row-3">
@@ -4377,6 +4418,12 @@ function rAmigos() {
   }
 
   cont.innerHTML = html;
+  Object.keys(_prevInputs).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = _prevInputs[id].v;
+    if (_prevInputs[id].foco) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {} }
+  });
 }
 
 // ── DETALLE DE MATERIA (Correlatividades) ──

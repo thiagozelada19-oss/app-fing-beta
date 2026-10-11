@@ -196,11 +196,19 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 24)
+//   id      → número entero único y creciente (el siguiente es 25)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 24,
+    fecha: '2026-10-08',
+    titulo: 'Amigos: apodo',
+    cambios: [
+      'En la sección Amigos ahora podés ponerte un apodo. Es el nombre que ven tus amigos en el ranking y en su lista; si no ponés ninguno, ven el nombre de tu cuenta de Google.',
+    ],
+  },
   {
     id: 23,
     fecha: '2026-10-08',
