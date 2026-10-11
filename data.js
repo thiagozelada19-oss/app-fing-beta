@@ -196,11 +196,20 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 26)
+//   id      → número entero único y creciente (el siguiente es 27)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 26,
+    fecha: '2026-10-09',
+    titulo: 'Correlativas en computadora: semestres bloqueados',
+    cambios: [
+      'En la grilla de correlativas ahora se ve la regla de bloque: para cursar un semestre desde el 3° año en adelante tenés que tener aprobado todo el semestre de cuatro lugares antes.',
+      'Cada columna avisa si está bloqueada (🔒, con cuántas materias te faltan) o habilitada (🔓), y las materias bloqueadas por esa regla se ven apagadas, rayadas y con candado.',
+    ],
+  },
   {
     id: 25,
     fecha: '2026-10-09',

@@ -339,6 +339,14 @@ body {
 .corr-sq.cg-regular    { background: rgba(34,211,238,0.12);  border-color: var(--accent7); }
 .corr-sq.cg-disponible { background: rgba(129,140,248,0.10); border-color: var(--accent2); }
 .corr-sq.cg-bloqueada  { background: var(--panel2); border-color: var(--border); opacity: 0.55; }
+/* Semestre bloqueado por la regla de bloque: más apagado, rayado y con candado */
+.corr-sq.cg-bloque { opacity: 0.4; cursor: not-allowed; border-style: dashed;
+  background: repeating-linear-gradient(135deg, var(--panel2) 0 7px, rgba(255,255,255,0.035) 7px 14px); }
+.corr-sq.cg-bloque:hover { transform: none; }
+.corr-sq.cg-bloque::after { content: '🔒'; position: absolute; top: 3px; right: 4px; font-size: 9px; }
+.corr-col-bloque { height: 26px; margin-top: 4px; font-size: 8.5px; line-height: 1.25; text-align: center; overflow: hidden; }
+.corr-col-bloque.bloqueado { color: var(--accent3); }
+.corr-col-bloque.habilitado { color: var(--success); }
 
 /* Al pasar el mouse por un cuadrado: se atenúa todo menos él y su árbol */
 .corr-grid-inner.hover-activo .corr-sq { opacity: 0.2; }
@@ -3439,19 +3447,42 @@ function rCorrGrid(ps) {
 
   const columnasHtml = PLAN.map(bloque => {
     const aprobBloque = bloque.materias.filter(m => getEstadoCorr(ps, m.id) === 'aprobada').length;
+
+    // Regla de bloque (Art. 3°): para cursar el semestre 5 en adelante hay que
+    // tener aprobado TODO el semestre que está 4 lugares antes (mismo criterio
+    // que usa la lista del celular, vía REGLA_BLOQUE / bloqueAprobado).
+    const regla = REGLA_BLOQUE.find(r => r.semGlobal === bloque.semGlobal);
+    const reqBloque = regla ? PLAN.find(b => b.semGlobal === regla.requiere) : null;
+    const reqTxt = reqBloque ? `${reqBloque.anio}° año · ${reqBloque.semestre}° sem.` : '';
+    const faltanReq = regla ? getIdsBloque(regla.requiere).filter(id => getEstadoCorr(ps, id) !== 'aprobada').length : 0;
+    const semestreBloqueado = !!regla && faltanReq > 0;
+
     const cuadrados = bloque.materias.map(m => {
       const est = getEstadoCorr(ps, m.id);
       const disponible = est === 'libre' && puedesCursar(m, ps);
-      const cls = est === 'aprobada' ? 'cg-aprobada' : est === 'regular' ? 'cg-regular' : disponible ? 'cg-disponible' : 'cg-bloqueada';
-      return `<div class="corr-sq ${cls}" data-id="${m.id}" onclick="abrirCorrMateria('${m.id}')" onmouseenter="hoverCorrSq('${m.id}')" onmouseleave="unhoverCorrSq()" title="${m.nombre}">
+      const porBloque = est === 'libre' && semestreBloqueado && !regla.excepciones.includes(m.id);
+      const cls = (est === 'aprobada' ? 'cg-aprobada' : est === 'regular' ? 'cg-regular' : disponible ? 'cg-disponible' : 'cg-bloqueada')
+                + (porBloque ? ' cg-bloque' : '');
+      const tip = porBloque
+        ? `${m.nombre} — Bloqueada: primero tenés que aprobar todo el ${reqTxt} (te faltan ${faltanReq})`
+        : m.nombre;
+      return `<div class="corr-sq ${cls}" data-id="${m.id}" onclick="abrirCorrMateria('${m.id}')" onmouseenter="hoverCorrSq('${m.id}')" onmouseleave="unhoverCorrSq()" title="${tip}">
         <span class="corr-sq-nombre">${m.nombre}</span>
       </div>`;
     }).join('');
+
+    let badgeBloque = '<div class="corr-col-bloque vacio"></div>';
+    if (regla) {
+      badgeBloque = semestreBloqueado
+        ? `<div class="corr-col-bloque bloqueado" title="Para cursar este semestre tenés que aprobar todo el ${reqTxt} (te faltan ${faltanReq})">🔒 Aprobar ${reqBloque.anio}°·${reqBloque.semestre}° (faltan ${faltanReq})</div>`
+        : `<div class="corr-col-bloque habilitado" title="Ya aprobaste todo el ${reqTxt}: este semestre está habilitado">🔓 Habilitado</div>`;
+    }
     return `<div class="corr-col">
       <div class="corr-col-header">
         <div class="corr-col-anio">${bloque.anio}° año</div>
         <div class="corr-col-sem">${bloque.semestre}° sem.</div>
         <div class="corr-col-count">${aprobBloque}/${bloque.materias.length}</div>
+        ${badgeBloque}
       </div>
       <div class="corr-col-sqs">${cuadrados}</div>
     </div>`;
@@ -3474,6 +3505,7 @@ function rCorrGrid(ps) {
       <div class="ley-item"><div class="ley-dot" style="background:var(--accent7);"></div>Regular</div>
       <div class="ley-item"><div class="ley-dot" style="background:var(--accent2);"></div>Disponible</div>
       <div class="ley-item"><div class="ley-dot" style="background:var(--muted);"></div>Bloqueada</div>
+      <div class="ley-item"><span>🔒</span>Falta aprobar el semestre previo</div>
       <div class="ley-item" style="margin-left:auto;"><span class="corr-ley-linea fuerte"></span>Correlativa fuerte</div>
       <div class="ley-item"><span class="corr-ley-linea debil"></span>Correlativa débil</div>
     </div>
