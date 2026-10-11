@@ -196,11 +196,21 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 28)
+//   id      → número entero único y creciente (el siguiente es 29)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 28,
+    fecha: '2026-10-11',
+    titulo: 'Tutorial con globitos y flechas',
+    cambios: [
+      'El tutorial ahora usa globitos chicos con una flecha que apunta al botón que está explicando, en vez de un cartel grande que tapaba la pantalla.',
+      'Se oscurece menos el fondo, así ves la sección real mientras te la explica.',
+      'Podés avanzar con el botón, tocando el botón resaltado, o con las flechas ← → del teclado en la compu (Esc para cerrar).',
+    ],
+  },
   {
     id: 27,
     fecha: '2026-10-11',
@@ -450,81 +460,82 @@ const CHANGELOG = [
 // un paso, solo hay que editar este array — no hace falta tocar index.html.
 //
 // El campo opcional "seccion" hace que ese paso resalte el ícono real de esa
-// sección en el menú (y cambie a esa pantalla de verdad detrás del cartel).
-// Si se omite "seccion" (como en el primer y el último paso), el tutorial
-// se muestra como un cartel centrado normal, sin resaltar nada.
+// sección en el menú, con un globito y una flecha que apunta ahí (y cambie a
+// esa pantalla de verdad detrás). Si se omite "seccion" (como en el primer y
+// el último paso), el globito se muestra centrado, sin flecha.
 // "seccion" debe ser el mismo nombre que usa el menú (showSec), o 'cuenta'
-// para apuntar al botón de la nube (☁️) en la barra de arriba.
+// para apuntar al engranaje (⚙️) de la barra de arriba.
+// Mantené los textos cortos: el globito es chico a propósito.
 const TUTORIAL = [
   {
     emoji: '👋',
     titulo: '¡Bienvenido!',
-    texto: 'Esta app te ayuda a organizar tus materias, tareas, exámenes y horarios de toda la carrera, en un solo lugar. Te muestro rápido cada sección — tocá "Siguiente" para seguir, o "Saltar" si ya la conocés.',
+    texto: 'Organizá materias, tareas, exámenes y horarios de toda la carrera. Te muestro cada sección en un minuto.',
   },
   {
     emoji: '📚',
     titulo: 'Materias y notas',
-    texto: 'Acá cargás tus materias con sus notas parciales. La app calcula sola si quedaste regular, promocionada o libre.',
+    texto: 'Cargá tus materias y tus notas. La app calcula sola si quedás regular, promocionada o libre.',
     seccion: 'materias',
   },
   {
     emoji: '✅',
     titulo: 'Tareas',
-    texto: 'Anotá tus entregas con fecha. La app te avisa con alertas cuando se van acercando.',
+    texto: 'Anotá tus entregas con fecha y marcalas cuando las termines. La app te avisa cuando se acercan.',
     seccion: 'tareas',
   },
   {
     emoji: '📝',
     titulo: 'Exámenes',
-    texto: 'Cargá tus parciales, finales, recuperatorios o fechas globales, con lugar y hora si ya los sabés.',
+    texto: 'Parciales, finales, recuperatorios y globales, con lugar y hora si ya los sabés.',
     seccion: 'examenes',
   },
   {
     emoji: '🗓️',
     titulo: 'Horario',
-    texto: 'Armá tu horario semanal de cursada: qué materia tenés, qué día y en qué aula.',
+    texto: 'Armá tu horario semanal de cursada: materia, día y aula.',
     seccion: 'horario',
   },
   {
     emoji: '🍅',
     titulo: 'Pomodoro',
-    texto: 'Estudiá con un cronómetro por materia: el tiempo se suma solo a esa materia, para llevar el control de cuánto le dedicaste.',
+    texto: 'Estudiá con un cronómetro por materia: el tiempo se suma solo a esa materia.',
     seccion: 'pomodoro',
   },
   {
     emoji: '📊',
     titulo: 'Avance',
-    texto: 'Mirá de un vistazo cómo vas en la carrera: materias aprobadas, promedio, y qué te falta.',
+    texto: 'Mirá cómo vas: promedios por materia, tareas pendientes y la línea de tiempo de tu carrera.',
     seccion: 'avance',
   },
   {
     emoji: '🎓',
     titulo: 'Correlativas',
-    texto: 'Mirá qué materias podés cursar ahora según tus correlativas aprobadas o regularizadas.',
+    texto: 'Mirá qué materias podés cursar según tus correlativas, y qué semestres están bloqueados.',
     seccion: 'corr',
   },
   {
     emoji: '🗒️',
     titulo: 'Calendario académico',
-    texto: 'Fechas importantes de la facultad: inicio y fin de clases, recesos, e inscripciones a examen.',
+    texto: 'Fechas de la facultad: inicio y fin de clases, recesos e inscripciones a examen.',
     seccion: 'cal',
   },
   {
     emoji: '👥',
     titulo: 'Amigos',
-    texto: 'Agregá a tus compañeros con un código y comparen horas de estudio y avance en la carrera.',
+    texto: 'Agregá compañeros con un código y comparen horas de estudio y avance.',
     seccion: 'amigos',
   },
   {
     emoji: '⚙️',
     titulo: 'Configuración',
-    texto: 'Desde el engranaje tenés todo lo demás: iniciar sesión con Google para sincronizar entre el celular y la computadora (es opcional), el backup de tus datos, las notificaciones y las novedades.',
+    texto: 'Desde acá iniciás sesión para sincronizar el celu y la compu (opcional), hacés backup y activás los avisos.',
     seccion: 'cuenta',
   },
   {
     emoji: '🎉',
-    titulo: '¡Listo para arrancar!',
-    texto: 'Eso es todo. Podés volver a ver este tutorial cuando quieras desde el engranaje (⚙️).',
+    titulo: '¡Listo!',
+    texto: 'Eso es todo. Podés volver a verlo desde el engranaje ⚙️ → Tutorial.',
   },
 ];
 
