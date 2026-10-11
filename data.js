@@ -196,11 +196,20 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 25)
+//   id      → número entero único y creciente (el siguiente es 26)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 25,
+    fecha: '2026-10-09',
+    titulo: 'Pomodoro: elegí la materia vos',
+    cambios: [
+      'En Pomodoro, el selector de materia ahora arranca en "Seleccionar materia…" en vez de tener una ya elegida.',
+      'Si tocás Iniciar sin elegir una, te avisa que primero tenés que seleccionar una materia.',
+    ],
+  },
   {
     id: 24,
     fecha: '2026-10-08',

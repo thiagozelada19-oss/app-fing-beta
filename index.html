@@ -3577,7 +3577,7 @@ function segundosRestantesPomodoro() {
 function iniciarPomodoro() {
   const sel = document.getElementById('pomo-materia');
   const materiaId = sel ? sel.value : '';
-  if (!materiaId) { showToast('⚠️ Elegí una materia primero'); return; }
+  if (!materiaId) { showToast('⚠️ Tenés que seleccionar una materia primero'); return; }
   const trabajoMin  = Math.max(1, parseInt(document.getElementById('pomo-trabajo').value)  || 25);
   const descansoMin = Math.max(1, parseInt(document.getElementById('pomo-descanso').value) || 5);
 
@@ -3985,7 +3985,7 @@ function rPomodoro() {
       <div class="card">
         <div class="form-group">
           <label class="form-label">MATERIA</label>
-          <select class="form-input" id="pomo-materia">${opciones || '<option value="">Agregá una materia primero</option>'}</select>
+          <select class="form-input" id="pomo-materia">${materiasActivas.length ? '<option value="">Seleccionar materia…</option>' + opciones : '<option value="">Agregá una materia primero</option>'}</select>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -4047,7 +4047,22 @@ function rPomodoro() {
     </div>`;
   }
 
+  // Si la pantalla se redibuja mientras elegís (por ejemplo, llega un dato
+  // de la nube), se conserva lo que ya habías puesto.
+  const _prev = {};
+  ['pomo-materia','pomo-trabajo','pomo-descanso'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) _prev[id] = el.value;
+  });
+
   cont.innerHTML = html;
+
+  Object.keys(_prev).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === _prev[id])) return;
+    el.value = _prev[id];
+  });
   actualizarMiniPomodoro();
 }
 
