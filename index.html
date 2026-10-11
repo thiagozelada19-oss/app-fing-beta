@@ -2346,6 +2346,7 @@ function aplicarDatosRemotos(d) {
   if (_semestreActualCache) localforage.setItem('ing1-semestre-actual', String(_semestreActualCache)).catch(()=>{});
   else localforage.removeItem('ing1-semestre-actual').catch(()=>{});
   render();
+  limpiarVencidos();
 }
 
 function pushRemoto() {
@@ -4925,10 +4926,52 @@ window.editarTarea=function(id){
   openModal('modal-tarea');
 };
 
+// Limpieza automática de la lista:
+//  - Tareas: una tarea tildada como completada se borra al día siguiente.
+//  - Exámenes: un examen se borra cuando ya pasó su día (a partir de ayer).
+// Las tareas que ya estaban completadas de antes (sin fecha de cuándo se
+// completaron) se marcan "completadas hoy", así se borran mañana y no de golpe.
+// Se llama al abrir la app, al traer datos de la nube y cada 10 minutos
+// (por si la app queda abierta pasada la medianoche).
+function limpiarVencidos() {
+  if (!state) return;
+  if (!state.tareas) state.tareas = [];
+  if (!state.examenes) state.examenes = [];
+  const hoy = new Date();
+  const hoyKey = calKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+  let huboMarca = false;
+  state.tareas.forEach(t => {
+    if (t.completada && !t.completadaEn) { t.completadaEn = hoyKey; huboMarca = true; }
+  });
+
+  const antesT = state.tareas.length, antesE = state.examenes.length;
+  state.tareas = state.tareas.filter(t => !(t.completada && t.completadaEn && t.completadaEn < hoyKey));
+  state.examenes = state.examenes.filter(e => {
+    if (!e.fecha) return true;
+    const d = diasHasta(e.fecha);
+    return isNaN(d) || d >= 0;
+  });
+  const quitadasT = antesT - state.tareas.length;
+  const quitadosE = antesE - state.examenes.length;
+
+  if (quitadasT || quitadosE) {
+    const partes = [];
+    if (quitadasT) partes.push(quitadasT + (quitadasT === 1 ? ' tarea hecha' : ' tareas hechas'));
+    if (quitadosE) partes.push(quitadosE + (quitadosE === 1 ? ' examen que ya pasó' : ' exámenes que ya pasaron'));
+    showToast('🧹 Se quitó de la lista: ' + partes.join(' y '), 3500);
+    saveState(); render();
+  } else if (huboMarca) {
+    saveState();
+  }
+}
+
 window.toggleT=function(id){
   const t=state.tareas.find(x=>x.id===id);
   if(t){
     t.completada=!t.completada;
+    const hoy = new Date();
+    t.completadaEn = t.completada ? calKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()) : null;
     showToast(t.completada ? '✅ Tarea completada' : '↩️ Tarea pendiente');
     saveState(); render();
   }
@@ -5189,6 +5232,8 @@ bootApp().then(async () => {
   await chequearTutorial();
   chequearNovedades();
   await restaurarPomodoroAlArrancar();
+  limpiarVencidos();
+  setInterval(limpiarVencidos, 10 * 60 * 1000);
   if ('Notification' in window && Notification.permission === 'granted') iniciarCheckerNotificaciones();
 }).catch(err => {
   console.error('[boot] Error al iniciar la app:', err);

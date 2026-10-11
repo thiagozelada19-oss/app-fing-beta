@@ -196,11 +196,21 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 27)
+//   id      → número entero único y creciente (el siguiente es 28)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 27,
+    fecha: '2026-10-11',
+    titulo: 'Tareas y exámenes: limpieza automática',
+    cambios: [
+      'Las tareas que marcás como hechas se borran solas al día siguiente.',
+      'Los exámenes se borran solos cuando ya pasó su día.',
+      'Las tareas pendientes (aunque estén vencidas) no se borran: eso lo decidís vos.',
+    ],
+  },
   {
     id: 26,
     fecha: '2026-10-09',
