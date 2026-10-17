@@ -196,11 +196,19 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 30)
+//   id      → número entero único y creciente (el siguiente es 31)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 30,
+    fecha: '2026-10-13',
+    titulo: 'Tareas: arreglo de la descripción',
+    cambios: [
+      'Arreglamos que la descripción de una tarea no se guardaba. Ahora se guarda, se ve debajo de la tarea en la lista y se puede editar.',
+    ],
+  },
   {
     id: 29,
     fecha: '2026-10-12',
