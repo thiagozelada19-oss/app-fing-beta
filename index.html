@@ -4373,6 +4373,15 @@ function detenerListenersAmigos() {
   _amistadesCacheA = []; _amistadesCacheB = [];
 }
 
+// Cómo se ve quién te mandó una solicitud: "Apodo (Nombre de Google)", o solo
+// el nombre si no tiene apodo. Lo escribió esa otra persona: se escapa al mostrarlo.
+function etiquetaSolicitante(a) {
+  const nombre = String(a.nombreSolicitante || '').trim().slice(0, 60);
+  const alias = String(a.aliasSolicitante || '').trim().slice(0, 20);
+  if (alias && nombre && alias !== nombre) return alias + ' (' + nombre + ')';
+  return alias || nombre || '';
+}
+
 function procesarAmistades() {
   const todas = [..._amistadesCacheA, ..._amistadesCacheB];
   const aceptadas = [], recibidas = [], enviadas = [];
@@ -4381,7 +4390,11 @@ function procesarAmistades() {
     if (a.estado === 'aceptada') aceptadas.push(otroUid);
     else if (a.estado === 'pendiente') {
       if (a.solicitante === _uid) enviadas.push(otroUid);
-      else recibidas.push(otroUid);
+      else {
+        recibidas.push(otroUid);
+        const etiqueta = etiquetaSolicitante(a);
+        if (etiqueta) _nombresCache[otroUid] = etiqueta;
+      }
     }
   });
   _amigosAceptadosUids = aceptadas;
@@ -4427,10 +4440,15 @@ async function agregarAmigoPorCodigo(codigoIngresado) {
       showToast('🎉 ¡Ahora son amigos!');
       return;
     }
+    // El nombre viaja dentro de la solicitud: el otro todavía no es tu amigo y
+    // por eso no puede leer tu perfil, pero sí puede leer esta solicitud.
+    const yo = firebase.auth().currentUser;
     await ref.set({
       uidA: [_uid, codigo].sort()[0],
       uidB: [_uid, codigo].sort()[1],
       solicitante: _uid,
+      nombreSolicitante: String((yo && yo.displayName) || '').trim().slice(0, 60),
+      aliasSolicitante: normalizarAlias(state.alias || ''),
       estado: 'pendiente',
       creado: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -4594,7 +4612,7 @@ function rAmigos() {
   if (_solicitudesEnviadas.length) {
     html += `<div class="card">
       <div class="pomo-resumen-titulo">⏳ Esperando que te acepten</div>
-      ${_solicitudesEnviadas.map(uid => `<div class="amigo-solicitud-row"><div class="amigo-solicitud-nombre">${escapeHtml(nombreDeUid(uid))}</div></div>`).join('')}
+      ${_solicitudesEnviadas.map(uid => `<div class="amigo-solicitud-row"><div class="amigo-solicitud-nombre">Solicitud enviada · código …${escapeHtml(uid.slice(-5))}</div></div>`).join('')}
     </div>`;
   }
 

@@ -196,11 +196,20 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 31)
+//   id      → número entero único y creciente (el siguiente es 32)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 31,
+    fecha: '2026-10-13',
+    titulo: 'Amigos: ver quién te mandó la solicitud',
+    cambios: [
+      'Cuando alguien te manda una solicitud de amistad, ahora ves su nombre (y su apodo, si tiene) para saber quién es antes de aceptar.',
+      'Las solicitudes que mandaste y todavía no aceptaron se identifican por los últimos caracteres del código.',
+    ],
+  },
   {
     id: 30,
     fecha: '2026-10-13',
