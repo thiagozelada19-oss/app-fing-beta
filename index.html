@@ -1520,7 +1520,7 @@ body {
 <div class="modal-overlay" id="modal-examen">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Nuevo <span>examen</span></div>
+    <div class="modal-title" id="modal-examen-title">Nuevo <span>examen</span></div>
     <div class="form-group">
       <label class="form-label">MATERIA</label>
       <select class="form-input" id="e-materia"></select>
@@ -1898,6 +1898,7 @@ localforage.config({
 let curSec = 'materias';
 let editingMateriaId = null;
 let editingTareaId = null;
+let editingExamenId = null;
 
 const DEFAULT_STATE = {
   materias: [
@@ -2786,6 +2787,7 @@ function rExamenes() {
         <div class="examen-sub">${e.hora?e.hora+' · ':''}${e.aula||''}${pasado?' · ✓ Pasado':urgente?' · 🔥 ¡Próximo!':''}</div>
       </div>
       <span class="examen-type-badge ${TIPO_CLS[e.tipo]}">${TIPO_LABELS[e.tipo]}</span>
+      <button class="edit-btn" onclick="editarExamen(${e.id})">✏️</button>
       <button class="del-btn" onclick="eliminarExamen(${e.id})">×</button>
     </div>`;
   }).join('');
@@ -4805,9 +4807,12 @@ function openModal(id) {
   if(id==='modal-notificaciones') {
     actualizarUiNotificaciones();
   }
-  if(id==='modal-examen') {
+  if(id==='modal-examen' && !editingExamenId) {
+    document.getElementById('modal-examen-title').innerHTML = 'Nuevo <span>examen</span>';
     document.getElementById('e-tipo').value = 'parcial';
+    document.getElementById('e-num-parcial').innerHTML = '<option value="1°">1°</option><option value="2°">2°</option><option value="3°">3°</option>';
     document.getElementById('e-num-parcial').value = '1°';
+    ['e-num','e-fecha','e-hora','e-aula'].forEach(i => { document.getElementById(i).value = ''; });
     onTipoExamenChange();
   }
   document.getElementById(id).classList.add('open');
@@ -4840,12 +4845,12 @@ function onTipoExamenChange() {
     inputTexto.classList.remove('hidden');
   }
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); editingMateriaId=null; editingTareaId=null; editingClaseId=null; if(id==='modal-corr-materia') corrMateriaAbierta=null; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); editingMateriaId=null; editingTareaId=null; editingExamenId=null; editingClaseId=null; if(id==='modal-corr-materia') corrMateriaAbierta=null; }
 
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{
     if(e.target!==o) return;
-    o.classList.remove('open');
+    closeModal(o.id); // (y no solo ocultarlo) para que no quede una edición a medias
   });
 });
 
@@ -4913,34 +4918,45 @@ function abrirDesdeConfig(idModal) {
 }
 
 function fillSelects(){
+  // Rellena un selector SIN perder lo que ya estaba elegido (si no, al abrir
+  // "Editar", la materia volvía a la primera de la lista).
+  const poner = (sel, html) => {
+    const previo = sel.value;
+    sel.innerHTML = html;
+    if (previo && [...sel.options].some(o => o.value === previo)) sel.value = previo;
+  };
+
   // Para Tareas y Exámenes: solo materias que todavía pueden generarlos (no
   // las ya aprobadas ni las archivadas — ahí no vas a tener nada nuevo).
   const disponiblesBase = state.materias.filter(m => m.estado !== 'aprobada' && m.estado !== 'archivada');
   const htmlDisponibles = (lista) => lista.length
     ? lista.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('')
     : '<option value="">No hay materias disponibles</option>';
+  // Al editar algo de una materia que mientras tanto quedó aprobada o archivada,
+  // se la incluye igual — si no, el selector la reemplazaría por otra sin avisar.
+  const conActual = (materiaId) => {
+    const lista = disponiblesBase;
+    if (materiaId != null && !lista.some(m => m.id == materiaId)) {
+      const m = getM(materiaId);
+      if (m) return [...lista, m];
+    }
+    return lista;
+  };
 
   const tMateria = document.getElementById('t-materia');
   if (tMateria) {
-    let disponibles = disponiblesBase;
-    // Si estamos editando una tarea de una materia que mientras tanto quedó
-    // aprobada o archivada, la incluimos igual — si no, el selector la reemplazaría sola
-    // por otra materia al abrir el formulario, sin que el usuario lo note.
-    if (editingTareaId) {
-      const t = state.tareas.find(x => x.id === editingTareaId);
-      if (t && !disponibles.some(m => m.id == t.materiaId)) {
-        const m = getM(t.materiaId);
-        if (m) disponibles = [...disponibles, m];
-      }
-    }
-    tMateria.innerHTML = htmlDisponibles(disponibles);
+    const t = editingTareaId ? state.tareas.find(x => x.id === editingTareaId) : null;
+    poner(tMateria, htmlDisponibles(conActual(t ? t.materiaId : null)));
   }
 
   const eMateria = document.getElementById('e-materia');
-  if (eMateria) eMateria.innerHTML = htmlDisponibles(disponiblesBase);
+  if (eMateria) {
+    const ex = editingExamenId ? state.examenes.find(x => x.id === editingExamenId) : null;
+    poner(eMateria, htmlDisponibles(conActual(ex ? ex.materiaId : null)));
+  }
 
   const cMateria = document.getElementById('c-materia');
-  if (cMateria) cMateria.innerHTML = state.materias.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
+  if (cMateria) poner(cMateria, state.materias.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join(''));
 }
 
 // ── ACCIONES MATERIAS ──
@@ -5199,26 +5215,61 @@ function guardarExamen(){
   if(!fecha){alert('Ingresá una fecha');return;}
   const materiaVal = document.getElementById('e-materia').value;
   if(!materiaVal){ showToast('⚠️ No hay ninguna materia disponible para asignar'); return; }
+  // Los exámenes que ya pasaron se borran solos de la lista: si la fecha es del
+  // pasado (por ejemplo, un año mal puesto), avisamos antes de guardar.
+  if (diasHasta(fecha) < 0 && !confirm('Esa fecha ya pasó, así que el examen se va a borrar solo de la lista. ¿Guardarlo igual?')) return;
   const tipo = document.getElementById('e-tipo').value;
   let num = '';
   if (tipo === 'parcial') num = document.getElementById('e-num-parcial').value;
   else if (tipo !== 'global') num = document.getElementById('e-num').value.trim();
 
-  state.examenes.push({
-    id: Date.now(),
+  const datos = {
     materiaId: parseInt(materiaVal),
     tipo,
     num,
     fecha,
     hora: document.getElementById('e-hora').value||null,
     aula: document.getElementById('e-aula').value.trim()||null,
-  });
-  ['e-num','e-fecha','e-hora','e-aula'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('e-num-parcial').value = '1°';
+  };
+  if (editingExamenId) {
+    state.examenes = state.examenes.map(e => e.id === editingExamenId ? { ...e, ...datos } : e);
+    showToast('✅ Examen actualizado');
+  } else {
+    state.examenes.push({ id: Date.now(), ...datos });
+    showToast('📅 Examen agregado');
+  }
   closeModal('modal-examen');
-  showToast('📅 Examen agregado');
   saveState(); render();
 }
+
+// Abre el formulario con los datos del examen para corregirlos (mismo id, así
+// no se pierde nada de lo que dependa de él).
+window.editarExamen=function(id){
+  const e = state.examenes.find(x => x.id === id);
+  if(!e) return;
+  editingExamenId = id;
+  document.getElementById('modal-examen-title').innerHTML = 'Editar <span>examen</span>';
+  fillSelects();
+  document.getElementById('e-materia').value = e.materiaId;
+  document.getElementById('e-tipo').value = e.tipo;
+
+  const selNum = document.getElementById('e-num-parcial');
+  const txtNum = document.getElementById('e-num');
+  txtNum.value = '';
+  if (e.tipo === 'parcial') {
+    // Si tenía un número que no es 1°/2°/3° (datos viejos), se lo agrega para no perderlo
+    if (e.num && ![...selNum.options].some(o => o.value === e.num)) selNum.add(new Option(e.num, e.num));
+    selNum.value = e.num || '1°';
+  } else if (e.tipo !== 'global') {
+    txtNum.value = e.num || '';
+  }
+  onTipoExamenChange();
+
+  document.getElementById('e-fecha').value = e.fecha || '';
+  document.getElementById('e-hora').value = e.hora || '';
+  document.getElementById('e-aula').value = e.aula || '';
+  openModal('modal-examen');
+};
 
 window.eliminarExamen=function(id){
   state.examenes=state.examenes.filter(e=>e.id!==id);

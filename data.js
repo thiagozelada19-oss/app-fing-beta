@@ -196,11 +196,21 @@ const CAL_DIAS_ESP = {
 // una entrada más nueva que la última vista en este dispositivo, y muestra
 // el modal de novedades una sola vez. No hace falta tocar index.html para
 // esto: solo agregar el objeto acá.
-//   id      → número entero único y creciente (el siguiente es 32)
+//   id      → número entero único y creciente (el siguiente es 33)
 //   fecha   → 'AAAA-MM-DD'
 //   titulo  → título corto de la actualización
 //   cambios → lista de puntos (en texto simple, sin HTML)
 const CHANGELOG = [
+  {
+    id: 32,
+    fecha: '2026-10-14',
+    titulo: 'Exámenes editables + arreglo en tareas',
+    cambios: [
+      'Ahora podés editar un examen con el lápiz (✏️), por si te equivocaste en algún dato, sin tener que borrarlo y volver a crearlo.',
+      'Arreglamos que al editar una tarea la materia se cambiaba sola a la primera de la lista.',
+      'Si cerrabas un formulario tocando afuera, la app podía quedar como si siguieras editando: ahora eso se corrige.',
+    ],
+  },
   {
     id: 31,
     fecha: '2026-10-13',
